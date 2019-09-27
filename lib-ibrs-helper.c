@@ -329,8 +329,10 @@ void start_exchange(int socket_fd){
 
             // INVIO IDS_BUFFER A CS
             char ack[5];
+            char* ip_cs;
+            ip_cs = getenv("CS");
 
-            socket_cs = connect_socket("127.0.0.1", 8888);
+            socket_cs = connect_socket(ip_cs, 8888);
             if(write(socket_cs, "group_admin ", 12) == -1) {
                 printf("Problemi nella write sulla socket\n");
                 return;
