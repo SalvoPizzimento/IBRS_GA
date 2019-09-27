@@ -199,10 +199,11 @@ void send_params(int socket_fd, char* groupname){
         exit(EXIT_FAILURE);
     }
 
-    if(write(socket_fd, psw_cs, 500) == -1) {
+    if(write(socket_fd, buffer, 1024) == -1){
         printf("Problemi nella write sulla socket\n");
         return;
     }
+    free(buffer);
 }
 
 int connect_socket(char serv_addr[], int port){
