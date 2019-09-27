@@ -26,6 +26,7 @@
 #define SA struct sockaddr 
 #define prng_sec_level 96
 #define default_sec_level 80
+#define psw_cs "root"
 
 long get_filesize(FILE *fp);
 int authenticate(char* username, char* groupname, char* ids_buffer);
