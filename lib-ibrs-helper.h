@@ -32,6 +32,9 @@ int authenticate(char* username, char* groupname, char* ids_buffer);
 void ibrs_startup(char* groupname, char* username);
 void send_params(int socket_fd, char* groupname);
 
+void rcv_data(int socket_id, char* read_buffer, int size);
+void snd_data(int socket_id, char* send_buffer, int size);
+
 int connect_socket(char serv_addr[], int port);
 void start_exchange(int socket_id);
 void start_connection();
