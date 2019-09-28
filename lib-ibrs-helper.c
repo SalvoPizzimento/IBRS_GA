@@ -10,6 +10,22 @@
 
 #include "lib-ibrs-helper.h"
 
+void rcv_data(int socket_id, char* read_buffer, int size){
+    if(read(socket_id, read_buffer, size) == -1){
+        free(read_buffer);
+        printf("Problema nella read della socket\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void snd_data(int socket_id, char* send_buffer, int size){
+    if(write(socket_id, send_buffer, size) == -1) {
+        printf("problema nella write sulla socket \n");
+        free(send_buffer);
+        exit(EXIT_FAILURE);
+    }
+}
+
 int authenticate(char* username, char* groupname, char* ids_buffer){
     FILE* list_file;
     char* file_buffer;
@@ -171,10 +187,7 @@ void send_params(int socket_fd, char* groupname){
         exit(EXIT_FAILURE);
     }
 
-    if(write(socket_fd, buffer, 1024) == -1) {
-        printf("Problemi nella write sulla socket\n");
-        return;
-    }
+    snd_data(socket_fd, buffer, 1024);
     free(buffer);
     free(directory);
     fclose(stream);
@@ -190,10 +203,7 @@ void send_params(int socket_fd, char* groupname){
         exit(EXIT_FAILURE);
     }
 
-    if(write(socket_fd, buffer, 1024) == -1) {
-        printf("Problemi nella write sulla socket\n");
-        return;
-    }
+    snd_data(socket_fd, buffer, 1024);
     free(buffer);
     free(directory);
     fclose(stream);
@@ -207,10 +217,7 @@ void send_params(int socket_fd, char* groupname){
         exit(EXIT_FAILURE);
     }
 
-    if(write(socket_fd, buffer, 1024) == -1){
-        printf("Problemi nella write sulla socket\n");
-        return;
-    }
+    snd_data(socket_fd, buffer, 1024);
     free(buffer);
 }
 
@@ -223,7 +230,7 @@ int connect_socket(char serv_addr[], int port){
     socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
     if (socket_fd == -1) { 
         printf("socket creation failed...\n"); 
-        exit(0); 
+        return 0;
     } 
     else
         printf("Socket successfully created..\n"); 
@@ -236,7 +243,7 @@ int connect_socket(char serv_addr[], int port){
 
     if (connect(socket_fd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
-        exit(0);
+        return 0;
     } 
     else
         printf("connected to the server..\n");
@@ -260,17 +267,11 @@ void start_exchange(int socket_fd){
 
     // RICEZIONE USERNAME E GROUPNAME
     buffer = calloc(50, sizeof(char));
-    if(read(socket_fd, buffer, 50) == -1) {
-        printf("Problemi nella read dalla socket\n");
-        return;
-    }
-    
+    rcv_data(socket_fd, buffer, 50);
+        
     if(strlen(buffer) <=0 ){
         printf("Input invalido.\n");
-        if(write(socket_fd, "NULL", 4) == -1) {
-            printf("Problemi nella write sulla socket\n");
-            return;
-        } 
+        snd_data(socket_fd, "NULL", 4);
         return;      
     }
 
@@ -282,27 +283,18 @@ void start_exchange(int socket_fd){
     token = strtok(NULL, ",");
     strncpy(groupname, token, strlen(token));
 
-    if(write(socket_fd, "ACK", 3) == -1) {
-        printf("Problemi nella write sulla socket\n");
-        return;
-    }
+    snd_data(socket_fd, "ACK", 3);
 
     printf("USERNAME & GROUPNAME: %s & %s\n", username, groupname);
 
     // RICEZIONE LISTA UTENTI DEL GRUPPO
     ids_buffer = calloc(1024, sizeof(char));
-    if(read(socket_fd, ids_buffer, 1024) == -1) {
-        printf("Problemi nella read dalla socket\n");
-        return;
-    }
+    rcv_data(socket_fd, ids_buffer, 1024);
     
     // AUTENTICAZIONE DELL'UTENTE
     auth = authenticate(username, groupname, ids_buffer);
     if(auth == 0){
-        if(write(socket_fd, "FAIL_AUTH", 9) == -1) {
-            printf("Problemi nella write sulla socket\n");
-            return;
-        }
+        snd_data(socket_fd, "FAIL_AUTH", 9);
         printf("Autenticazione fallita\n");
         free(buffer);
         free(username);
@@ -311,10 +303,7 @@ void start_exchange(int socket_fd){
     }
 
     if(strcmp(ids_buffer, "") == 0){
-        if(write(socket_fd, "EMPTY", 5) == -1){
-            printf("Problemi nella write sulla socket\n");
-            return;
-        }
+        snd_data(socket_fd, "EMPTY", 5);
         printf("File IDS vuoto\n");
     }
 
@@ -322,6 +311,7 @@ void start_exchange(int socket_fd){
 
         // CREAZIONE DIRECTORY GROUPNAME - CONTROLLO SE LA DIRECTORY ESISTE GIA'
         if (stat(groupname, &st) == -1) {
+            char* read_buffer;
             mkdir(groupname, 0700);
 
             // CREAZIONE FILE IDS.TXT DENTRO LA CARTELLA GROUPNAME
@@ -337,48 +327,30 @@ void start_exchange(int socket_fd){
             ibrs_startup(username, groupname);
 
             // INVIO IDS_BUFFER A CS
-            char ack[5];
             char* ip_cs;
             ip_cs = getenv("CS");
 
             socket_cs = connect_socket(ip_cs, 8888);
-            if(write(socket_cs, "group_admin ", 12) == -1) {
-                printf("Problemi nella write sulla socket\n");
-                return;
-            }
-            while(strncmp(ack, "ACK", 3) != 0) {
-                if(read(socket_cs, ack, 3) == -1) {
-                    printf("Problemi nella read dalla socket\n");
-                    return;
-                } 
-            }
+            snd_data(socket_cs, "group_admin", 12);
 
-            if(write(socket_cs, groupname, strlen(groupname)) == -1) {
-                printf("Problemi nella write sulla socket\n");
-                return;
-            }
-            sprintf(ack, "%s", "");
-            while(strncmp(ack, "ACK", 3) != 0) {
-                if(read(socket_cs, ack, 3) == -1) {
-                    printf("Problemi nella read dalla socket\n");
-                    return;
-                }
-            }
+            read_buffer = calloc(1024, sizeof(char));
+            rcv_data(socket_cs, read_buffer, 1024);
+            free(read_buffer);
+
+            snd_data(socket_cs, groupname, strlen(groupname));
+
+            read_buffer = calloc(1024, sizeof(char));
+            rcv_data(socket_cs, read_buffer, 1024);
+            free(read_buffer);
             
-            if(write(socket_cs, ids_buffer, strlen(ids_buffer)) == -1) {
-                printf("Problemi nella write sulla socket\n");
-                return;
-            }
+            snd_data(socket_cs, ids_buffer, strlen(ids_buffer));
+
             send_cs = 1;
             free(directory);
         }
         // IL GRUPPO RICHIESTO E' GIA' PRESENTE
         else{
-            if(write(socket_fd, "EXIST", 5) == -1) {
-                printf("Problemi nella write sulla socket\n");
-                return;
-            }
-
+            snd_data(socket_fd, "EXIST", 5);
             printf("Gruppo già esistente\n");
             free(buffer);
             free(username);
@@ -399,10 +371,7 @@ void start_exchange(int socket_fd){
         }
     }
     else{
-        if(write(socket_fd, "NULL", 4) == -1) {
-            printf("Problemi nella read dalla socket\n");
-            return;
-        }
+        snd_data(socket_fd, "NULL", 4);
         printf("Gruppo Inesistente\n");
     }
 
@@ -427,7 +396,7 @@ void start_connection(){
     socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
     if (socket_fd == -1) { 
         printf("socket creation failed...\n"); 
-        exit(0); 
+        return;
     } 
     else {
         printf("Socket successfully created..\n"); 
@@ -442,7 +411,7 @@ void start_connection(){
     // Binding newly created socket to given IP and verification 
     if ((bind(socket_fd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
         printf("socket bind failed...\n"); 
-        exit(0); 
+        return;
     }
     else {
         printf("Socket successfully binded..\n"); 
@@ -452,7 +421,7 @@ void start_connection(){
 	    // Now server is ready to listen and verification 
 	    if ((listen(socket_fd, 5)) != 0) { 
 	        printf("Listen failed...\n"); 
-	        exit(0); 
+	        return;
 	    } 
 	    else
 	        printf("Server listening..\n"); 
@@ -462,7 +431,7 @@ void start_connection(){
 	    connfd = accept(socket_fd, (SA*)&cli, (socklen_t*)&len); 
 	    if (connfd < 0) { 
 	        printf("server acccept failed...\n"); 
-	        exit(0); 
+	        return;
 	    } 
 	    else
 	        printf("server acccept the client...\n"); 
