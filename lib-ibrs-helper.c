@@ -1,6 +1,14 @@
-#include "lib-ibrs-helper.h"
+/** @file lib-ibrs-helper.c
+ *  @brief Helper per il Group Admin.
+ *
+ *  Helper contenente le funzioni usate nell'applicazione
+ *  per la comunicazione tra le classi.
+ *
+ *  @author Alessandro Midolo
+ *  @author Salvatore Pizzimento
+ */
 
-int socket_id = 0;
+#include "lib-ibrs-helper.h"
 
 int authenticate(char* username, char* groupname, char* ids_buffer){
     FILE* list_file;
@@ -42,7 +50,7 @@ int authenticate(char* username, char* groupname, char* ids_buffer){
     return 0;
 }
 
-void ibrs_startup(char* groupname, char* username) {
+void ibrs_startup(char* username, char* groupname) {
     srand(time(NULL));
 
     gmp_randstate_t prng;
@@ -326,7 +334,7 @@ void start_exchange(int socket_fd){
             fclose(file_to_open);
 
             // CREAZIONE FILE PARAM.TXT E PAIRING.TXT
-            ibrs_startup(groupname, username);
+            ibrs_startup(username, groupname);
 
             // INVIO IDS_BUFFER A CS
             char ack[5];

@@ -1,3 +1,13 @@
+/** @file lib-ibrs-ga.c
+ *  @brief Main file del Group Admin.
+ *
+ *  File contenente le primitive crittografiche 
+ *  usate per il funzionamento dello schema IBRS.
+ *
+ *  @author Alessandro Midolo
+ *  @author Salvatore Pizzimento
+ */
+
 #include "lib-ibrs-ga.h"
 
 //INIT array of strings
@@ -35,7 +45,15 @@ void free_array_element(array_element_t_ibrs* b) {
 	b->size = 0;
 }
 
-//INSERT keys in index location
-void insert_keys(ibrs_key_pair* keys, ibrs_key_pair user_keys, int index) {
-	keys[index] = user_keys;
+long get_filesize(FILE *fp){
+    long filesize;
+
+    if(fseek(fp, 0, SEEK_END) != 0)
+        exit(EXIT_FAILURE); /* exit with errorcode if fseek() fails */
+
+    filesize = ftell(fp);
+
+    rewind(fp);
+
+    return filesize;
 }

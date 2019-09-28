@@ -1,17 +1,14 @@
+/** @file lib-ibrs-params.c
+ *  @brief Parametri per il Group Admin.
+ *
+ *  File contenente le funzioni per 
+ *  gestire i parametri dello schema IBRS.
+ *
+ *  @author Alessandro Midolo
+ *  @author Salvatore Pizzimento
+ */
+
 #include "lib-ibrs-params.h"
-
-long get_filesize(FILE *fp){
-    long filesize;
-
-    if(fseek(fp, 0, SEEK_END) != 0)
-        exit(EXIT_FAILURE); /* exit with errorcode if fseek() fails */
-
-    filesize = ftell(fp);
-
-    rewind(fp);
-
-    return filesize;
-}
 
 void generate_params(ibrs_public_params_t* public_params, ibrs_secret_param_t* secret_param,
                     int level, FILE* pairing_stream, FILE* param_stream, FILE* secret_stream) {
@@ -49,7 +46,7 @@ void generate_params(ibrs_public_params_t* public_params, ibrs_secret_param_t* s
 
     pbc_param_clear(param);
 
-    printf("Parameters created.\n");
+    printf("Parametri creati.\n");
 }
 
 void load_params(ibrs_public_params_t* public_params, int level, FILE* pairing_stream, FILE* param_stream) {
@@ -74,7 +71,7 @@ void load_params(ibrs_public_params_t* public_params, int level, FILE* pairing_s
     element_init_G1(public_params->ppub, public_params->pairing);
 	
 	if(param_stream!=NULL){
-        char *line[3];
+        char *line[2];
         size_t len = 0;
    
 		line[0] = NULL;
@@ -99,7 +96,7 @@ void load_params(ibrs_public_params_t* public_params, int level, FILE* pairing_s
 	fclose(pairing_stream);
     free(pairing_buffer);
 
-    printf("Parameters loaded.\n");
+    printf("Parametri caricati.\n");
 }
 
 void load_params_with_secret(ibrs_public_params_t* public_params, ibrs_secret_param_t* secret_param, int level, FILE* pairing_stream, FILE* param_stream, FILE* secret_stream) {
@@ -127,7 +124,7 @@ void load_params_with_secret(ibrs_public_params_t* public_params, ibrs_secret_pa
     element_init_G1(public_params->ppub, public_params->pairing);
 	
 	if(param_stream!=NULL){
-        char *line[3];
+        char *line[2];
         size_t len = 0;
    
 		line[0] = NULL;
@@ -164,7 +161,7 @@ void load_params_with_secret(ibrs_public_params_t* public_params, ibrs_secret_pa
 	fclose(pairing_stream);
     free(pairing_buffer);
 
-    printf("Parameters loaded.\n");
+    printf("Parametri caricati.\n");
 }
 
 void ibrs_params_clear(ibrs_public_params_t* public_params, ibrs_secret_param_t* secret_param) {

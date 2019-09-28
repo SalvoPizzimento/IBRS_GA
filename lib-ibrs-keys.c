@@ -1,3 +1,13 @@
+/** @file lib-ibrs-keys.c
+ *  @brief Chiavi per il Group Admin.
+ *
+ *  File contenente le funzioni per 
+ *  gestire le chiavi dello schema IBRS.
+ *
+ *  @author Alessandro Midolo
+ *  @author Salvatore Pizzimento
+ */
+
 #include "lib-ibrs-keys.h"
 
 void ibrs_keys_gen(ibrs_public_params_t* public_params, ibrs_secret_param_t* secret_param, ibrs_key_pair* keys, char* identity, FILE* keys_stream) {
@@ -19,7 +29,7 @@ void ibrs_keys_gen(ibrs_public_params_t* public_params, ibrs_secret_param_t* sec
 	
 	element_fprintf(keys_stream, "%B\n%B", keys->qid, keys->sid);
 
-	printf("Keys created.\n");
+	printf("Chiavi create.\n");
 }
 
 void ibrs_keys_clear(ibrs_key_pair* keys) {
