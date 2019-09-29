@@ -264,6 +264,7 @@ void start_exchange(int socket_fd){
     int auth;
     int socket_cs;
     int send_cs = 0;
+    long ids_size = 0;
 
     // RICEZIONE USERNAME E GROUPNAME
     buffer = calloc(50, sizeof(char));
@@ -286,10 +287,16 @@ void start_exchange(int socket_fd){
     snd_data(socket_fd, "ACK", 3);
 
     printf("USERNAME & GROUPNAME: %s & %s\n", username, groupname);
+    free(buffer);
+
+    // RICEZIONE SIZE LISTA UTENTI
+    buffer = calloc(500, sizeof(char));
+    rcv_data(socket_fd, buffer, 500);
+    ids_size = atoi(buffer);
 
     // RICEZIONE LISTA UTENTI DEL GRUPPO
-    ids_buffer = calloc(1024, sizeof(char));
-    rcv_data(socket_fd, ids_buffer, 1024);
+    ids_buffer = calloc(ids_size, sizeof(char));
+    rcv_data(socket_fd, ids_buffer, ids_size);
     
     // AUTENTICAZIONE DELL'UTENTE
     auth = authenticate(username, groupname, ids_buffer);
@@ -343,6 +350,11 @@ void start_exchange(int socket_fd){
             rcv_data(socket_cs, read_buffer, 1024);
             free(read_buffer);
             
+            read_buffer = calloc(500, sizeof(char));
+            sprintf(read_buffer, "%ld", ids_size);
+            snd_data(socket_cs, read_buffer, 500);
+            free(read_buffer);
+
             snd_data(socket_cs, ids_buffer, strlen(ids_buffer));
 
             send_cs = 1;
