@@ -297,7 +297,7 @@ void start_exchange(int socket_fd){
     // RICEZIONE LISTA UTENTI DEL GRUPPO
     ids_buffer = calloc(ids_size, sizeof(char));
     rcv_data(socket_fd, ids_buffer, ids_size);
-    
+
     // AUTENTICAZIONE DELL'UTENTE
     auth = authenticate(username, groupname, ids_buffer);
     if(auth == 0){
