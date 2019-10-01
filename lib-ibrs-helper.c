@@ -387,6 +387,7 @@ void start_exchange(int socket_fd){
         send_params(socket_fd, groupname, 0);
         if (send_cs == 1) {
             send_params(socket_cs, groupname, 1);
+		close(socket_cs);
         }
     }
     else{
