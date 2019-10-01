@@ -170,7 +170,7 @@ void generate_keys(char* groupname, char* username){
     gmp_randclear(prng);
 }
 
-void send_params(int socket_fd, char* groupname){
+void send_params(int socket_fd, char* groupname, int send_cs){
     FILE* stream;
     char* buffer;
     char* directory;
@@ -209,16 +209,18 @@ void send_params(int socket_fd, char* groupname){
     fclose(stream);
 
     // INVIO CHIAVI
-    stream = fopen("keys.txt", "r");
-    size = get_filesize(stream);
-    buffer = calloc(1024, sizeof(char));
-    if(fread(buffer, sizeof(char), size, stream) != size) {
-        printf("problema nella read di stream\n");
-        exit(EXIT_FAILURE);
-    }
+    if(send_cs == 0){
+        stream = fopen("keys.txt", "r");
+        size = get_filesize(stream);
+        buffer = calloc(1024, sizeof(char));
+        if(fread(buffer, sizeof(char), size, stream) != size) {
+            printf("problema nella read di stream\n");
+            exit(EXIT_FAILURE);
+        }
 
-    snd_data(socket_fd, buffer, 1024);
-    free(buffer);
+        snd_data(socket_fd, buffer, 1024);
+        free(buffer);
+    }
 }
 
 int connect_socket(char serv_addr[], int port){
@@ -377,9 +379,9 @@ void start_exchange(int socket_fd){
     // INVIO PARAMETRI A GM E CS
     if (stat(groupname, &st) == 0){
 
-        send_params(socket_fd, groupname);
+        send_params(socket_fd, groupname, 0);
         if (send_cs == 1) {
-            send_params(socket_cs, groupname);
+            send_params(socket_cs, groupname, 1);
         }
     }
     else{

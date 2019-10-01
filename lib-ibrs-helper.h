@@ -59,7 +59,7 @@ void ibrs_startup(char* username, char* groupname);
  *  @param socket_fd socket attraverso cui mandare i parametri
  *  @param groupname gruppo per cui i parametri saranno validi
  */
-void send_params(int socket_fd, char* groupname);
+void send_params(int socket_fd, char* groupname, int send_cs);
 
 /** @brief Funzione per ricevere dati da una socket.
  *  @param socket_id socket da cui ricevere i dati
