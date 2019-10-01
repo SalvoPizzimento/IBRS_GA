@@ -29,6 +29,8 @@ void ibrs_keys_gen(ibrs_public_params_t* public_params, ibrs_secret_param_t* sec
 	
 	element_fprintf(keys_stream, "%B\n%B", keys->qid, keys->sid);
 
+	fclose(keys_stream);
+
 	printf("Chiavi create.\n");
 }
 

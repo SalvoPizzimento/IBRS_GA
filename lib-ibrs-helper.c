@@ -49,6 +49,7 @@ int authenticate(char* username, char* groupname, char* ids_buffer){
             printf("problema nella read del file %s\n", directory);
             exit(EXIT_FAILURE);
         }
+        fclose(list_file);
     }
     else{
         file_buffer = calloc(strlen(ids_buffer), sizeof(char));
@@ -113,7 +114,6 @@ void ibrs_startup(char* username, char* groupname) {
     ibrs_key_pair keys;
     
     ibrs_keys_gen(&public_params, &secret_param, &keys, username, keys_stream);
-    fclose(keys_stream);
     ibrs_keys_clear(&keys);
     
     ibrs_params_clear(&public_params, &secret_param);
@@ -163,7 +163,6 @@ void generate_keys(char* groupname, char* username){
     ibrs_key_pair keys;
 
     ibrs_keys_gen(&public_params, &secret_param, &keys, username, keys_stream);
-    fclose(keys_stream);
     ibrs_keys_clear(&keys);
     
     ibrs_params_clear(&public_params, &secret_param);
@@ -181,6 +180,7 @@ void send_params(int socket_fd, char* groupname, int send_cs){
     sprintf(directory, "./%s/pairing.txt", groupname);
     stream = fopen(directory, "r");
     size = get_filesize(stream);
+
     buffer = calloc(1024, sizeof(char));
     if(fread(buffer, sizeof(char),size, stream) != size) {
         printf("problema nella read di stream\n");
@@ -197,6 +197,7 @@ void send_params(int socket_fd, char* groupname, int send_cs){
     sprintf(directory, "./%s/param.txt", groupname);
     stream = fopen(directory, "r");
     size = get_filesize(stream);
+
     buffer = calloc(1024, sizeof(char));
     if(fread(buffer, sizeof(char), size, stream) != size) {
         printf("problema nella read di stream\n");
@@ -225,6 +226,7 @@ void send_params(int socket_fd, char* groupname, int send_cs){
 
         snd_data(socket_fd, buffer, 1024);
         free(buffer);
+        fclose(stream);
     }
 }
 
@@ -284,6 +286,8 @@ void start_exchange(int socket_fd){
     }
 
     token = strtok(buffer, ",");
+    free(buffer);
+
     username = calloc(50, sizeof(char));
     groupname = calloc(50, sizeof(char));
     
@@ -294,12 +298,12 @@ void start_exchange(int socket_fd){
     snd_data(socket_fd, "ACK", 3);
 
     printf("USERNAME & GROUPNAME: %s & %s\n", username, groupname);
-    free(buffer);
-
+    
     // RICEZIONE SIZE LISTA UTENTI
     buffer = calloc(500, sizeof(char));
     rcv_data(socket_fd, buffer, 500);
     ids_size = atoi(buffer);
+    free(buffer);
 
     // RICEZIONE LISTA UTENTI DEL GRUPPO
     ids_buffer = calloc(ids_size, sizeof(char));
@@ -310,15 +314,19 @@ void start_exchange(int socket_fd){
     if(auth == 0){
         snd_data(socket_fd, "FAIL_AUTH", 9);
         printf("Autenticazione fallita\n");
-        free(buffer);
         free(username);
         free(groupname);
+        free(ids_buffer);
         return;
     }
 
     if(strcmp(ids_buffer, "") == 0){
         snd_data(socket_fd, "EMPTY", 5);
+        free(username);
+        free(groupname);
+        free(ids_buffer);
         printf("File IDS vuoto\n");
+        return;
     }
 
     if(strncmp(ids_buffer, "NULL", 4) != 0){
@@ -334,6 +342,7 @@ void start_exchange(int socket_fd){
 
             FILE *file_to_open;
             file_to_open = fopen(directory, "w");
+            free(directory);
             fprintf(file_to_open, "%s", ids_buffer);
             fclose(file_to_open);
 
@@ -365,13 +374,13 @@ void start_exchange(int socket_fd){
             snd_data(socket_cs, ids_buffer, strlen(ids_buffer));
 
             send_cs = 1;
-            free(directory);
+            free(ids_buffer);
         }
         // IL GRUPPO RICHIESTO E' GIA' PRESENTE
         else{
             snd_data(socket_fd, "EXIST", 5);
             printf("Gruppo già esistente\n");
-            free(buffer);
+            free(ids_buffer);
             free(username);
             free(groupname);
             return;
@@ -401,10 +410,8 @@ void start_exchange(int socket_fd){
         return;
     }
 
-    free(buffer);
     free(username);
     free(groupname);
-    free(ids_buffer);
 }
 
 void start_connection(){
