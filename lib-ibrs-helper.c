@@ -210,6 +210,11 @@ void send_params(int socket_fd, char* groupname, int send_cs){
 
     // INVIO CHIAVI
     if(send_cs == 0){
+        buffer = calloc(10, sizeof(char));
+        rcv_data(socket_fd, buffer, 3);
+        printf("ACK : %s\n", buffer);
+        free(buffer);
+
         stream = fopen("keys.txt", "r");
         size = get_filesize(stream);
         buffer = calloc(1024, sizeof(char));
