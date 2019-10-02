@@ -305,8 +305,7 @@ void start_exchange(int socket_fd){
     }
 
     token = strtok(buffer, ",");
-    free(buffer);
-
+   
     username = calloc(50, sizeof(char));
     groupname = calloc(50, sizeof(char));
     
@@ -315,10 +314,12 @@ void start_exchange(int socket_fd){
     strncpy(groupname, token, strlen(token));
 
     if(snd_data(socket_fd, "ACK", 3) == 0){
-        free(username);
+        free(buffer);
+	free(username);
         free(groupname);
         return;
     }
+	free(buffer);
 
     printf("USERNAME & GROUPNAME: %s & %s\n", username, groupname);
     
