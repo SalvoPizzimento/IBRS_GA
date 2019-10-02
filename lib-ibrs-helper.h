@@ -59,21 +59,21 @@ void ibrs_startup(char* username, char* groupname);
  *  @param socket_fd socket attraverso cui mandare i parametri
  *  @param groupname gruppo per cui i parametri saranno validi
  */
-void send_params(int socket_fd, char* groupname, int send_cs);
+int send_params(int socket_fd, char* groupname, int send_cs);
 
 /** @brief Funzione per ricevere dati da una socket.
  *  @param socket_id socket da cui ricevere i dati
  *  @param read_buffer buffer dove depositare i dati ricevuti
  *  @param size numero di caratteri massimi da ricevere
  */
-void rcv_data(int socket_id, char* read_buffer, int size);
+int rcv_data(int socket_id, char* read_buffer, int size);
 
 /** @brief Funzione per inviare dati ad una socket.
  *  @param socket_id socket a cui mandare i dati
  *  @param buffer buffer di dati da inviare
  *  @param size numero di caratteri massi da inviare
  */
-void snd_data(int socket_id, char* buffer, int size);
+int snd_data(int socket_id, char* buffer, int size);
 
 /** @brief Funzione per connettersi ad una socket tramite IP e PORTA.
  *  @param serv_addr[] indirizzo IP a cui connettersi

@@ -10,20 +10,22 @@
 
 #include "lib-ibrs-helper.h"
 
-void rcv_data(int socket_id, char* read_buffer, int size){
+int rcv_data(int socket_id, char* read_buffer, int size){
     if(read(socket_id, read_buffer, size) == -1){
         free(read_buffer);
         printf("Problema nella read della socket\n");
-        exit(EXIT_FAILURE);
+        return 0;
     }
+    return 1;
 }
 
-void snd_data(int socket_id, char* send_buffer, int size){
+int snd_data(int socket_id, char* send_buffer, int size){
     if(write(socket_id, send_buffer, size) == -1) {
         printf("problema nella write sulla socket \n");
         free(send_buffer);
-        exit(EXIT_FAILURE);
+        return 0;
     }
+    return 1;
 }
 
 int authenticate(char* username, char* groupname, char* ids_buffer){
@@ -47,7 +49,9 @@ int authenticate(char* username, char* groupname, char* ids_buffer){
         file_buffer = calloc(file_size, sizeof(char));
         if(fread(file_buffer, sizeof(char), file_size, list_file) != file_size){
             printf("problema nella read del file %s\n", directory);
-            exit(EXIT_FAILURE);
+            fclose(list_file);
+            free(file_buffer);
+            return 0;
         }
         fclose(list_file);
     }
@@ -60,10 +64,12 @@ int authenticate(char* username, char* groupname, char* ids_buffer){
     while(token != NULL){
         if(strncmp(username, token, strlen(username)) == 0){
             printf("Autenticazione eseguita con successo\n");
+            free(file_buffer);
             return 1;
         }
         token = strtok(NULL, "\n");
     }
+    free(file_buffer);
     return 0;
 }
 
@@ -169,7 +175,7 @@ void generate_keys(char* groupname, char* username){
     gmp_randclear(prng);
 }
 
-void send_params(int socket_fd, char* groupname, int send_cs){
+int send_params(int socket_fd, char* groupname, int send_cs){
     FILE* stream;
     char* buffer;
     char* directory;
@@ -184,10 +190,11 @@ void send_params(int socket_fd, char* groupname, int send_cs){
     buffer = calloc(1024, sizeof(char));
     if(fread(buffer, sizeof(char),size, stream) != size) {
         printf("problema nella read di stream\n");
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
-    snd_data(socket_fd, buffer, 1024);
+    if(snd_data(socket_fd, buffer, 1024) == 0)
+        return 0;
     free(buffer);
     free(directory);
     fclose(stream);
@@ -201,10 +208,11 @@ void send_params(int socket_fd, char* groupname, int send_cs){
     buffer = calloc(1024, sizeof(char));
     if(fread(buffer, sizeof(char), size, stream) != size) {
         printf("problema nella read di stream\n");
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
-    snd_data(socket_fd, buffer, 1024);
+    if(snd_data(socket_fd, buffer, 1024) == 0)
+        return 0;
     free(buffer);
     free(directory);
     fclose(stream);
@@ -212,8 +220,10 @@ void send_params(int socket_fd, char* groupname, int send_cs){
     // INVIO CHIAVI
     if(send_cs == 0){
         buffer = calloc(10, sizeof(char));
-        rcv_data(socket_fd, buffer, 3);
-        printf("ACK : %s\n", buffer);
+        if(rcv_data(socket_fd, buffer, 3) == 0){
+            free(buffer);
+            return 0;
+        }
         free(buffer);
 
         stream = fopen("keys.txt", "r");
@@ -221,13 +231,15 @@ void send_params(int socket_fd, char* groupname, int send_cs){
         buffer = calloc(1024, sizeof(char));
         if(fread(buffer, sizeof(char), size, stream) != size) {
             printf("problema nella read di stream\n");
-            exit(EXIT_FAILURE);
+            return 0;
         }
 
-        snd_data(socket_fd, buffer, 1024);
+        if(snd_data(socket_fd, buffer, 1024) == 0)
+            return 0;
         free(buffer);
         fclose(stream);
     }
+    return 1;
 }
 
 int connect_socket(char serv_addr[], int port){
@@ -277,11 +289,18 @@ void start_exchange(int socket_fd){
 
     // RICEZIONE USERNAME E GROUPNAME
     buffer = calloc(50, sizeof(char));
-    rcv_data(socket_fd, buffer, 50);
+    if(rcv_data(socket_fd, buffer, 50) == 0){
+        free(buffer);
+        return;
+    }
         
     if(strlen(buffer) <=0 ){
         printf("Input invalido.\n");
-        snd_data(socket_fd, "NULL", 4);
+        if(snd_data(socket_fd, "NULL", 4) == 0){
+            free(buffer);
+            return;
+        }
+        free(buffer);
         return;      
     }
 
@@ -295,24 +314,43 @@ void start_exchange(int socket_fd){
     token = strtok(NULL, ",");
     strncpy(groupname, token, strlen(token));
 
-    snd_data(socket_fd, "ACK", 3);
+    if(snd_data(socket_fd, "ACK", 3) == 0){
+        free(username);
+        free(groupname);
+        return;
+    }
 
     printf("USERNAME & GROUPNAME: %s & %s\n", username, groupname);
     
     // RICEZIONE SIZE LISTA UTENTI
     buffer = calloc(500, sizeof(char));
-    rcv_data(socket_fd, buffer, 500);
+    if(rcv_data(socket_fd, buffer, 500) == 0){
+        free(buffer);
+        free(username);
+        free(groupname);
+        return;
+    }
     ids_size = atoi(buffer);
     free(buffer);
 
     // RICEZIONE LISTA UTENTI DEL GRUPPO
     ids_buffer = calloc(ids_size, sizeof(char));
-    rcv_data(socket_fd, ids_buffer, ids_size);
+    if(rcv_data(socket_fd, ids_buffer, ids_size) == 0){
+        free(ids_buffer);
+        free(username);
+        free(groupname);
+        return;
+    }
 
     // AUTENTICAZIONE DELL'UTENTE
     auth = authenticate(username, groupname, ids_buffer);
     if(auth == 0){
-        snd_data(socket_fd, "FAIL_AUTH", 9);
+        if(snd_data(socket_fd, "FAIL_AUTH", 9) == 0){
+            free(username);
+            free(groupname);
+            free(ids_buffer);
+            return;
+        }
         printf("Autenticazione fallita\n");
         free(username);
         free(groupname);
@@ -321,7 +359,12 @@ void start_exchange(int socket_fd){
     }
 
     if(strcmp(ids_buffer, "") == 0){
-        snd_data(socket_fd, "EMPTY", 5);
+        if(snd_data(socket_fd, "EMPTY", 5) == 0){
+            free(username);
+            free(groupname);
+            free(ids_buffer);
+            return;
+        }
         free(username);
         free(groupname);
         free(ids_buffer);
@@ -354,31 +397,68 @@ void start_exchange(int socket_fd){
             ip_cs = getenv("CS");
 
             socket_cs = connect_socket(ip_cs, 8888);
-            snd_data(socket_cs, "group_admin", 12);
+            if(snd_data(socket_cs, "group_admin", 12) == 0){
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
 
             read_buffer = calloc(1024, sizeof(char));
-            rcv_data(socket_cs, read_buffer, 1024);
+            if(rcv_data(socket_cs, read_buffer, 1024) == 0){
+                free(read_buffer);
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
             free(read_buffer);
 
-            snd_data(socket_cs, groupname, strlen(groupname));
+            if(snd_data(socket_cs, groupname, strlen(groupname)) == 0){
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
 
             read_buffer = calloc(1024, sizeof(char));
-            rcv_data(socket_cs, read_buffer, 1024);
+            if(rcv_data(socket_cs, read_buffer, 1024) == 0){
+                free(read_buffer);
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
             free(read_buffer);
             
             read_buffer = calloc(500, sizeof(char));
             sprintf(read_buffer, "%ld", ids_size);
-            snd_data(socket_cs, read_buffer, 500);
+            if(snd_data(socket_cs, read_buffer, 500) == 0){
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
             free(read_buffer);
 
-            snd_data(socket_cs, ids_buffer, strlen(ids_buffer));
+            if(snd_data(socket_cs, ids_buffer, strlen(ids_buffer)) == 0){
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
 
             send_cs = 1;
             free(ids_buffer);
         }
         // IL GRUPPO RICHIESTO E' GIA' PRESENTE
         else{
-            snd_data(socket_fd, "EXIST", 5);
+            if(snd_data(socket_fd, "EXIST", 5) == 0){
+                free(ids_buffer);
+                free(username);
+                free(groupname);
+                return;
+            }
             printf("Gruppo già esistente\n");
             free(ids_buffer);
             free(username);
@@ -393,23 +473,32 @@ void start_exchange(int socket_fd){
     // INVIO PARAMETRI A GM E CS
     if (stat(groupname, &st) == 0){
 
-        send_params(socket_fd, groupname, 0);
+        if(send_params(socket_fd, groupname, 0) == 0){
+            free(username);
+            free(groupname);
+            return;
+        }
         if (send_cs == 1) {
-            send_params(socket_cs, groupname, 1);
-		close(socket_cs);
+            if(send_params(socket_cs, groupname, 1) == 0){
+                close(socket_cs);
+                free(username);
+                free(groupname);
+                return;
+            }
+            close(socket_cs);
         }
     }
     else{
-        snd_data(socket_fd, "NULL", 4);
+        if(snd_data(socket_fd, "NULL", 4) == 0){
+            free(username);
+            free(groupname);
+            return;
+        }
         printf("Gruppo Inesistente\n");
     }
 
     //ELIMINA FILE KEYS.TXT
-    if(remove("keys.txt") != 0){
-        printf("Impossibile rimuovere il file keys.txt");
-        return;
-    }
-
+    remove("keys.txt");
     free(username);
     free(groupname);
 }
